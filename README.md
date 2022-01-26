@@ -9,7 +9,7 @@ a name="installation"></a>
 ## Installation 
 
 #### Pre-Requisites
-[Python](https://www.python.org/downloads/), [Terraform](https://www.terraform.io/downloads.html) and [Spotipy](https://spotipy.readthedocs.io/en/2.13.0/).
+[Python](https://www.python.org/downloads/) and [Spotipy](https://spotipy.readthedocs.io/en/2.13.0/).
 
 
 <a name="usage"></a>
