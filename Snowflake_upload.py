@@ -1,71 +1,91 @@
 import snowflake.connector
+import boto3
 
-# Snowflake account and connection details (replace with your own)
-SNOWFLAKE_ACCOUNT = "your_account_name"
-SNOWFLAKE_USER = "your_username"
-SNOWFLAKE_PASSWORD = "your_password"
-SNOWFLAKE_WAREHOUSE = "your_warehouse_name"
+# Snowflake credentials
+snowflake_user = 'YOUR_SNOWFLAKE_USER'
+snowflake_password = 'YOUR_SNOWFLAKE_PASSWORD'
+snowflake_account = 'YOUR_SNOWFLAKE_ACCOUNT'
+snowflake_database = 'YOUR_SNOWFLAKE_DATABASE'
+snowflake_schema = 'YOUR_SNOWFLAKE_SCHEMA'
+snowflake_warehouse = 'YOUR_SNOWFLAKE_WAREHOUSE'
+snowflake_role = 'YOUR_SNOWFLAKE_ROLE'
 
-# Database, schema, and table names (adjust to your needs)
-SNOWFLAKE_DATABASE = "your_database_name"
-SNOWFLAKE_SCHEMA = "your_schema_name"
-SNOWFLAKE_TABLE = "spotify_top_tracks"
+# AWS credentials
+aws_access_key_id = 'YOUR_AWS_ACCESS_KEY_ID'
+aws_secret_access_key = 'YOUR_AWS_SECRET_ACCESS_KEY'
+s3_bucket_name = 'YOUR_S3_BUCKET_NAME'
+s3_stage_name = 'spotify_stage'
 
-# S3 stage and Snowpipe details (replace with your own)
-S3_STAGE_NAME = "spotify_top_tracks_stage"
-S3_STAGE_URL = "s3://your-s3-bucket-name/data/"
-SNOWPIPE_NAME = "spotify_top_tracks_pipe"
-
-def create_resources():
-    # Connect to Snowflake
-    conn = snowflake.connector.connect(
-        account=SNOWFLAKE_ACCOUNT,
-        user=SNOWFLAKE_USER,
-        password=SNOWFLAKE_PASSWORD,
-        warehouse=SNOWFLAKE_WAREHOUSE,
+def create_snowflake_connection():
+    con = snowflake.connector.connect(
+        user=snowflake_user,
+        password=snowflake_password,
+        account=snowflake_account,
+        warehouse=snowflake_warehouse,
+        database=snowflake_database,
+        schema=snowflake_schema,
+        role=snowflake_role
     )
-    cursor = conn.cursor()
+    return con
 
-    # Create database and schema if they don't exist
-    cursor.execute(f"CREATE DATABASE IF NOT EXISTS {SNOWFLAKE_DATABASE}")
-    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {SNOWFLAKE_SCHEMA}")
-
-    # Create table for storing Spotify data
-    cursor.execute(
-        f"""
-        CREATE TABLE IF NOT EXISTS {SNOWFLAKE_SCHEMA}.{SNOWFLAKE_TABLE} (
-            track_name VARCHAR(255),
-            artist_name VARCHAR(255),
-            album_name VARCHAR(255)
-        );
-        """
-    )
-
-    # Create stage for uploading data from S3
-    cursor.execute(
-        f"""
-        CREATE OR REPLACE STAGE {S3_STAGE_NAME}
-        URL = '{S3_STAGE_URL}'
-        FILE_FORMAT = (type=csv, field_delimiter=',', header_row=TRUE);
-        """
-    )
-
-    # Create Snowpipe for auto-ingestion
-    cursor.execute(
-        f"""
-        CREATE OR REPLACE PIPE {SNOWPIPE_NAME} AUTO_INGEST = TRUE
-        AS COPY INTO {SNOWFLAKE_SCHEMA}.{SNOWFLAKE_TABLE}
-        FROM @{{S3_STAGE_NAME}}
-        FILE_FORMAT = (type=csv, field_delimiter=',', header_row=TRUE)
-        ON_ERROR = CONTINUE;
-        """
-    )
-
-    conn.commit()
+def create_snowflake_database_and_schema(con):
+    cursor = con.cursor()
+    cursor.execute(f"CREATE DATABASE IF NOT EXISTS {snowflake_database}")
+    cursor.execute(f"USE DATABASE {snowflake_database}")
+    cursor.execute(f"CREATE SCHEMA IF NOT EXISTS {snowflake_schema}")
     cursor.close()
-    conn.close()
 
-print(f"Snowflake resources created and Snowpipe '{SNOWPIPE_NAME}' ready for auto-ingestion!")
+def create_snowflake_stage(con):
+    cursor = con.cursor()
+    cursor.execute(f"CREATE STAGE IF NOT EXISTS {s3_stage_name}")
+    cursor.close()
 
-# Example usage
-#create_resources()
+def create_snowflake_table(con):
+    cursor = con.cursor()
+    cursor.execute(f"""
+        CREATE TABLE IF NOT EXISTS {snowflake_schema}.spotify_data (
+            "Track Name" STRING,
+            "Artist" STRING,
+            "Album" STRING,
+            "Release Date" STRING,
+            "Added At" STRING
+        )
+    """)
+    cursor.close()
+
+def create_snowpipe(con):
+    cursor = con.cursor()
+    cursor.execute(f"""
+        CREATE PIPE IF NOT EXISTS {snowflake_schema}.spotify_pipe
+        AUTO_INGEST = TRUE
+        AS
+        COPY INTO {snowflake_schema}.spotify_data
+        FROM @spotify_stage
+        FILE_FORMAT = (TYPE = 'CSV' FIELD_OPTIONALLY_ENCLOSED_BY='"')
+    """)
+    cursor.close()
+
+if __name__ == "__main__":
+    # Extract top 50 tracks from Spotify (optional - requires Spotify API access)
+    # Implement your logic to get top tracks and create a Pandas DataFrame
+
+    # For demonstration, let's assume you have a DataFrame named top_tracks
+    # top_tracks = get_top_tracks_from_spotify()
+
+    # Create Snowflake connection
+    snowflake_connection = create_snowflake_connection()
+
+    # Create Snowflake database and schema
+    create_snowflake_database_and_schema(snowflake_connection)
+
+    # Create Snowflake stage
+    create_snowflake_stage(snowflake_connection)
+
+    # Create Snowflake table
+    create_snowflake_table(snowflake_connection)
+
+    # Create Snowpipe for automatic data ingestion
+    create_snowpipe(snowflake_connection)
+
+    # Close Snowflake connection
+    snowflake_connection.close()
