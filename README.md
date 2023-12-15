@@ -1,17 +1,29 @@
-# Spotify-Data_pipeline
-<a name="introduction"></a>
-## Introduction 
+# Spotify Data Pipeline to Snowflake
 
-Welcome to Spotify Analysis. 
-Enjoy learning more about the music you listen to and your personal listening habits.
+This project demonstrates an automated data pipeline for Spotify data, including extraction from the Spotify API, data cleaning, storage in AWS S3, and ingestion into Snowflake using Snowpipe.
 
-<a name="installation"></a>
-## Installation 
+## Overview
 
-#### Pre-Requisites
-[Python](https://www.python.org/downloads/) and [Spotipy](https://spotipy.readthedocs.io/en/2.13.0/).
+The project consists of two main components:
 
+1. **Spotify Data Extraction:**
+   - A Python script (`spotify_data_extraction.py`) that connects to the Spotify API, retrieves user listening data, and stores it in a CSV file.
 
-<a name="usage"></a>
-## Usage 
-Run the scripts with a dictionary of your faovurite artists or playlists to gather data about them and save it locally or in S3.
+2. **Snowflake Data Ingestion:**
+   - A Python script (`snowflake_data_ingestion.py`) that sets up the Snowflake environment, creates a Snowflake stage, table, and a Snowpipe for automatic data ingestion from S3.
+
+## Prerequisites
+
+Before running the scripts, make sure you have the following:
+
+- Spotify API credentials (client_id and client_secret).
+- Snowflake credentials (user, password, account, database, schema, warehouse, and role).
+- AWS credentials (access_key_id, secret_access_key).
+- An existing S3 bucket for storing data.
+
+## Usage
+
+1. Run the Spotify Data Extraction script to get listening data from the Spotify API and save it to a CSV file.
+
+   ```bash
+   python spotify_data_extraction.py
